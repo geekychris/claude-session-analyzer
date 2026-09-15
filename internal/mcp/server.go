@@ -25,9 +25,9 @@ import (
 	"io"
 	"sync"
 
-	"claude-trace/internal/analyzer"
-	"claude-trace/internal/ingest"
-	"claude-trace/internal/store"
+	"github.com/geekychris/claude-session-analyzer/internal/analyzer"
+	"github.com/geekychris/claude-session-analyzer/internal/ingest"
+	"github.com/geekychris/claude-session-analyzer/internal/store"
 )
 
 // Server carries dependencies + I/O handles.

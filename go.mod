@@ -1,4 +1,4 @@
-module claude-trace
+module github.com/geekychris/claude-session-analyzer
 
 go 1.25.0
 

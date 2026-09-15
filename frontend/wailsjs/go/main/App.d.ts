@@ -31,6 +31,8 @@ export function FilesBlastGlobal(arg1:number):Promise<Array<store.FileBlastRadiu
 
 export function GetAppInfo():Promise<main.AppInfo>;
 
+export function GetInitialProject():Promise<string>;
+
 export function GetMessageRaw(arg1:number):Promise<string>;
 
 export function GetSession(arg1:string):Promise<store.Session>;

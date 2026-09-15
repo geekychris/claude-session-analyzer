@@ -6,6 +6,43 @@ turn → the next Edit/Write), and lets you drill into how much reading /
 searching / sub-agent activity happened before code was written. Ships a
 native Wails UI, a headless REST API, and an MCP server.
 
+## Install
+
+One-line install — builds the `ct` CLI, and if `wails` is on PATH, also
+builds `claude-trace.app`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/geekychris/claude-session-analyzer/main/scripts/install.sh | bash
+```
+
+Re-run any time to update (git pull + rebuild). CLI lands in
+`~/.local/bin/ct`, app in `~/Applications/claude-trace.app`. Override with
+`CLAUDE_TRACE_BIN_DIR` / `CLAUDE_TRACE_APPS_DIR` env vars.
+
+CLI-only via `go install`:
+
+```bash
+go install github.com/geekychris/claude-session-analyzer/cmd/ct@latest
+```
+
+## Deep-linking into a project
+
+The Wails app accepts `--project <slug>` to jump straight to a project view
+on launch. The slug is the `~/.claude/projects/<slug>` directory name
+(Claude Code replaces both `/` and `_` in the cwd with `-`).
+
+```bash
+# LaunchServices path (may not always forward flags reliably):
+open -n -a claude-trace --args --project -Users-chris-code-my-repo
+
+# Direct binary launch (always forwards flags):
+"$HOME/Applications/claude-trace.app/Contents/MacOS/claude_trace" \
+    --project "-Users-chris-code-my-repo" &
+```
+
+Chief (github.com/geekychris/chief) uses this to open the analyzer directly
+to the project currently focused in its sidebar.
+
 ## Quick start
 
 ```bash

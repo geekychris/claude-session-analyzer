@@ -23,11 +23,11 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"claude-trace/internal/analyzer"
-	"claude-trace/internal/api"
-	"claude-trace/internal/ingest"
-	"claude-trace/internal/mcp"
-	"claude-trace/internal/store"
+	"github.com/geekychris/claude-session-analyzer/internal/analyzer"
+	"github.com/geekychris/claude-session-analyzer/internal/api"
+	"github.com/geekychris/claude-session-analyzer/internal/ingest"
+	"github.com/geekychris/claude-session-analyzer/internal/mcp"
+	"github.com/geekychris/claude-session-analyzer/internal/store"
 )
 
 func main() {

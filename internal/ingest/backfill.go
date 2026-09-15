@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"claude-trace/internal/store"
+	"github.com/geekychris/claude-session-analyzer/internal/store"
 )
 
 // BackfillBashClassification populates bash_program / bash_action for every

@@ -58,6 +58,10 @@ export function GetAppInfo() {
   return window['go']['main']['App']['GetAppInfo']();
 }
 
+export function GetInitialProject() {
+  return window['go']['main']['App']['GetInitialProject']();
+}
+
 export function GetMessageRaw(arg1) {
   return window['go']['main']['App']['GetMessageRaw'](arg1);
 }

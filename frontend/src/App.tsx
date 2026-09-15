@@ -6,10 +6,30 @@ import { SessionView } from "./views/SessionView";
 import { EpisodeView } from "./views/EpisodeView";
 import { SearchView } from "./views/SearchView";
 import { HeaderBar } from "./components/HeaderBar";
+import { GetInitialProject } from "../wailsjs/go/main/App";
 import type { Nav } from "./nav";
 
 export default function App() {
   const [nav, setNav] = useState<Nav>({ view: "dashboard" });
+
+  // Deep-link: if the app was launched with --project <slug>, jump straight
+  // to that project on mount. Chief uses this to open the analyzer directly
+  // to the project currently focused in its sidebar.
+  useEffect(() => {
+    let cancelled = false;
+    GetInitialProject()
+      .then((slug) => {
+        if (!cancelled && typeof slug === "string" && slug.length > 0) {
+          setNav({ view: "project", slug });
+        }
+      })
+      .catch(() => {
+        /* older backend without this binding — stay on dashboard */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

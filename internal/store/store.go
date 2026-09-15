@@ -15,7 +15,7 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"claude-trace/internal/pricing"
+	"github.com/geekychris/claude-session-analyzer/internal/pricing"
 )
 
 type Store struct {

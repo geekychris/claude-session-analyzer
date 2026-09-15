@@ -14,10 +14,10 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"claude-trace/internal/analyzer"
-	"claude-trace/internal/api"
-	"claude-trace/internal/ingest"
-	"claude-trace/internal/store"
+	"github.com/geekychris/claude-session-analyzer/internal/analyzer"
+	"github.com/geekychris/claude-session-analyzer/internal/api"
+	"github.com/geekychris/claude-session-analyzer/internal/ingest"
+	"github.com/geekychris/claude-session-analyzer/internal/store"
 )
 
 // App is the Wails-bound service. All exported methods become JS callables.
@@ -32,9 +32,23 @@ type App struct {
 	apiAddr  string // set when the embedded REST server starts
 
 	ingesting bool
+
+	// initialProject is the --project slug from main; the frontend reads it
+	// via GetInitialProject() on mount and, if non-empty, jumps straight to
+	// that project's view. Empty = normal dashboard-first launch.
+	initialProject string
 }
 
-func NewApp() *App { return &App{} }
+// NewApp constructs the Wails-bound service. initialProject is a project
+// slug passed via the --project CLI flag; empty means "start on dashboard."
+// The frontend reads it via GetInitialProject() on mount.
+func NewApp(initialProject string) *App {
+	return &App{initialProject: initialProject}
+}
+
+// GetInitialProject returns the project slug passed via --project on launch,
+// or empty string if none. Frontend calls this on mount to seed navigation.
+func (a *App) GetInitialProject() string { return a.initialProject }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx

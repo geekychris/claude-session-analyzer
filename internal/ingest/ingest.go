@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"claude-trace/internal/parser"
-	"claude-trace/internal/store"
+	"github.com/geekychris/claude-session-analyzer/internal/parser"
+	"github.com/geekychris/claude-session-analyzer/internal/store"
 )
 
 // DefaultRoot returns the default Claude projects directory (~/.claude/projects).

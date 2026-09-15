@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"claude-trace/internal/store"
+	"github.com/geekychris/claude-session-analyzer/internal/store"
 )
 
 type Analyzer struct {
