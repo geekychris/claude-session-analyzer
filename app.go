@@ -72,13 +72,50 @@ func (a *App) startEmbeddedAPI() {
 	a.mu.Lock()
 	a.apiAddr = ln.Addr().String()
 	srv := &api.Server{Store: a.st, Analyzer: a.analyzer, Ingester: a.ingester}
+	// Wire the navigate endpoint: external clients (Chief, other tools) can
+	// POST /api/v1/navigate to redirect the SPA route in place instead of
+	// spawning a second app instance.  We emit a Wails runtime event that
+	// App.tsx subscribes to.
+	srv.Navigator = func(nav map[string]any) error {
+		runtime.EventsEmit(a.ctx, "navigate", nav)
+		// Bring the app to the foreground so the redirect is visible.
+		runtime.WindowUnminimise(a.ctx)
+		runtime.WindowShow(a.ctx)
+		return nil
+	}
 	a.mu.Unlock()
 
 	fmt.Fprintf(os.Stderr, "claude-trace REST API on http://%s/api/v1\n", a.apiAddr)
+	// Publish the port to a well-known file so external tools (Chief) can
+	// discover a running instance without probing arbitrary ports. Best-
+	// effort — a failure here isn't fatal.
+	writePortFile(a.apiAddr)
 	// http.Server.Serve accepts a listener directly; we don't need srv.ListenAndServe.
 	go func() {
 		_ = (&stdHTTPServer{srv: srv}).Serve(ln)
 	}()
+}
+
+// PortFilePath returns the well-known file used to publish this app's
+// loopback REST port. Exposed so external integrators (Chief) can locate
+// a running instance without probing.
+func PortFilePath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, "Library", "Caches", "claude-trace", "port")
+}
+
+// writePortFile writes "host:port\n" to PortFilePath so a subsequent launcher
+// can discover a live instance. Overwritten on every start. Not cleaned up on
+// crash — startup-time discovery must ping /healthz before trusting the port.
+func writePortFile(addr string) {
+	p := PortFilePath()
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		fmt.Fprintln(os.Stderr, "port file mkdir:", err)
+		return
+	}
+	if err := os.WriteFile(p, []byte(addr+"\n"), 0o644); err != nil {
+		fmt.Fprintln(os.Stderr, "port file write:", err)
+	}
 }
 
 // tiny adapter so we don't need to expose the embedded *http.Server on the

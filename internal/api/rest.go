@@ -53,6 +53,19 @@ type Server struct {
 	Analyzer *analyzer.Analyzer
 	Ingester *ingest.Ingester
 
+	// Navigator, if set, is invoked when POST /api/v1/navigate arrives.
+	// The Wails app wires this to `runtime.EventsEmit(ctx, "navigate", nav)`
+	// so the SPA frontend can redirect without spawning a second app instance.
+	// A nil Navigator makes the endpoint return 501.
+	//
+	// Payload shape (matches the frontend Nav discriminated union):
+	//   {"view":"dashboard"}
+	//   {"view":"project","slug":"-Users-..."}
+	//   {"view":"session","sessionId":"UUID","projectSlug":"-Users-..."}
+	//   {"view":"episode","episodeId":123,"sessionId":"UUID","projectSlug":"-Users-..."}
+	//   {"view":"search","query":"..."}
+	Navigator func(nav map[string]any) error
+
 	// Set by Serve; nil until the server starts.
 	http *http.Server
 }
@@ -92,7 +105,49 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/v1/export/episodes.csv", s.handleExportEpisodes)
 	mux.HandleFunc("/api/v1/export/tool-calls.csv", s.handleExportToolCalls)
 
+	mux.HandleFunc("/api/v1/navigate", s.handleNavigate)
+
 	return withCORS(withLogging(mux))
+}
+
+// handleNavigate accepts a nav payload and forwards it to the app's Navigator
+// callback, which the Wails app wires to `runtime.EventsEmit(ctx, "navigate", …)`
+// so the SPA can update its route in place. Also intended to bring the
+// analyzer window to the foreground.
+//
+// This is the endpoint Chief (github.com/geekychris/chief) hits when the user
+// clicks "Open in Analyzer" on a project and an analyzer instance is already
+// running — avoids spawning duplicates.
+func (s *Server) handleNavigate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", http.MethodPost)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if s.Navigator == nil {
+		http.Error(w, "navigate is only available when running inside the Wails app", http.StatusNotImplemented)
+		return
+	}
+	var payload map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "invalid JSON: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	view, _ := payload["view"].(string)
+	switch view {
+	case "dashboard", "project", "session", "episode", "search":
+		// ok
+	default:
+		http.Error(w, "unknown or missing view; expected one of: dashboard, project, session, episode, search", http.StatusBadRequest)
+		return
+	}
+	if err := s.Navigator(payload); err != nil {
+		http.Error(w, "navigate failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "nav": payload})
 }
 
 // ListenAndServe starts the REST server on addr (e.g. ":8787" or "127.0.0.1:8787").

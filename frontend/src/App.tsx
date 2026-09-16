@@ -7,6 +7,7 @@ import { EpisodeView } from "./views/EpisodeView";
 import { SearchView } from "./views/SearchView";
 import { HeaderBar } from "./components/HeaderBar";
 import { GetInitialProject } from "../wailsjs/go/main/App";
+import { EventsOn, EventsOff } from "../wailsjs/runtime/runtime";
 import type { Nav } from "./nav";
 
 export default function App() {
@@ -29,6 +30,19 @@ export default function App() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  // Redirect-in-place: when an external client POSTs to /api/v1/navigate,
+  // the backend emits a Wails "navigate" event. We validate the payload
+  // (which mirrors the Nav discriminated union) and update state, so the
+  // window redraws without needing a second app instance.
+  useEffect(() => {
+    const handler = (payload: unknown) => {
+      const nav = coerceNav(payload);
+      if (nav) setNav(nav);
+    };
+    EventsOn("navigate", handler);
+    return () => EventsOff("navigate");
   }, []);
 
   useEffect(() => {
@@ -90,4 +104,52 @@ export default function App() {
       </main>
     </div>
   );
+}
+
+// coerceNav validates and narrows an unknown payload (received via the Wails
+// "navigate" runtime event, originating from POST /api/v1/navigate) into a
+// well-formed Nav. Returns null if invalid — the SPA then stays where it is
+// rather than crashing on a malformed external call.
+function coerceNav(payload: unknown): Nav | null {
+  if (!payload || typeof payload !== "object") return null;
+  const p = payload as Record<string, unknown>;
+  const view = typeof p.view === "string" ? p.view : "";
+  switch (view) {
+    case "dashboard":
+      return { view: "dashboard" };
+    case "project":
+      if (typeof p.slug === "string" && p.slug.length > 0) {
+        return { view: "project", slug: p.slug };
+      }
+      return null;
+    case "session":
+      if (
+        typeof p.sessionId === "string" && p.sessionId.length > 0 &&
+        typeof p.projectSlug === "string" && p.projectSlug.length > 0
+      ) {
+        return { view: "session", sessionId: p.sessionId, projectSlug: p.projectSlug };
+      }
+      return null;
+    case "episode":
+      if (
+        typeof p.episodeId === "number" &&
+        typeof p.sessionId === "string" && p.sessionId.length > 0 &&
+        typeof p.projectSlug === "string" && p.projectSlug.length > 0
+      ) {
+        return {
+          view: "episode",
+          episodeId: p.episodeId,
+          sessionId: p.sessionId,
+          projectSlug: p.projectSlug,
+        };
+      }
+      return null;
+    case "search":
+      if (typeof p.query === "string") {
+        return { view: "search", query: p.query };
+      }
+      return null;
+    default:
+      return null;
+  }
 }
