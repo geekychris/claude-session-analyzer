@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.png" alt="Claude Session Analyzer logo" width="180">
+</p>
+
 # claude-trace
 
 Analyzer for Claude Code JSONL session files. Ingests every session under
