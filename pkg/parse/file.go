@@ -1,4 +1,4 @@
-package parser
+package parse
 
 import (
 	"bufio"
@@ -58,7 +58,7 @@ var ErrPartialLine = errors.New("partial line (no trailing newline)")
 
 // Next reads the next event. Returns io.EOF at clean end of file.
 // If the last line lacks a newline, returns (event, ErrPartialLine).
-func (p *FileParser) Next() (*Event, error) {
+func (p *FileParser) Next() (*Record, error) {
 	line, err := p.r.ReadBytes('\n')
 	if len(line) == 0 && err != nil {
 		return nil, err
@@ -79,7 +79,7 @@ func (p *FileParser) Next() (*Event, error) {
 		return p.Next()
 	}
 
-	ev := &Event{Offset: lineStart, Raw: append(json.RawMessage(nil), trimmed...)}
+	ev := &Record{Offset: lineStart, Raw: append(json.RawMessage(nil), trimmed...)}
 	if uerr := json.Unmarshal(trimmed, ev); uerr != nil {
 		// Malformed line — surface as an error but let caller decide to skip.
 		return ev, uerr

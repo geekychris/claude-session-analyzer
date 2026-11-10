@@ -96,12 +96,12 @@ you already have on disk.
                                  │  streaming decoder
                                  ▼
    ┌─────────────────────────────────────────────────────────┐
-   │  internal/parser  →  internal/ingest  →  internal/store │
+   │  pkg/parse        →  internal/ingest  →  internal/store │
    │  (JSONL)             (walk + resume)     (SQLite + FTS5)│
    └───────────┬─────────────────┬─────────────────┬─────────┘
                │                 │                 │
                ▼                 ▼                 ▼
-        internal/analyzer   internal/pricing   internal/api
+        pkg/episodes        pkg/pricing        internal/api   
         (episodes)          (cost estimation)  (REST)
                │                 │                 │
                └────────┬────────┴─────────────────┤
@@ -150,7 +150,7 @@ Key derived fields on `tool_calls`:
 - `result_size` — length of the tool result, used to sum
   `bytesReadBeforeEdit`.
 - `bash_program` + `bash_action` — set for `is_bash=true` rows by
-  `internal/ingest/bashclass.go`.
+  `pkg/toolclass/bashclass.go`.
 
 Key derived fields on `episodes`:
 
@@ -172,7 +172,7 @@ Key derived fields on `episodes`:
 
 1. Read the persisted byte offset from `ingest_state`. If the file has
    grown, seek to that offset and stream only the new bytes.
-2. Decode line-by-line using `internal/parser`. Each JSON line becomes
+2. Decode line-by-line using `pkg/parse`. Each JSON line becomes
    one `messages` row plus zero or more `tool_calls` rows.
 3. All writes happen inside a single transaction per file. To avoid the
    classic "held-tx + helper-connection deadlock" with modernc.org SQLite,
@@ -202,7 +202,7 @@ change to source code." It starts with a `user` message and ends when
 the assistant emits its first modifying tool call (`Edit`, `Write`,
 `NotebookEdit`) — OR when the next `user` message arrives.
 
-Segmentation lives in `internal/analyzer/episodes.go`. Two subtleties
+Segmentation lives in `pkg/episodes` (no storage); `internal/analyzer` loads rows and writes the result. Two subtleties
 worth calling out:
 
 **1. Metrics stop at the first edit; membership does not.** An earlier
@@ -245,7 +245,7 @@ Every `tool_use` block is stamped with a set of booleans at ingest time.
 lets every SQL rollup treat "did code get written?" as `WHERE
 is_modifying = 1` without string-matching tool names.
 
-`Bash` calls are further classified in `internal/ingest/bashclass.go`.
+`Bash` calls are further classified in `pkg/toolclass/bashclass.go`.
 The classifier walks past shell comments, environment-variable prefixes
 (`FOO=1 bar`), sudo/env wrappers, and pipelines to find the real
 program, then optionally extracts an action (`git commit`, `docker run`,
@@ -285,7 +285,7 @@ open a modal of concrete commands (with results) for that
 
 ## Cost estimation
 
-`internal/pricing/pricing.go` holds Anthropic list rates per model, with
+`pkg/pricing/pricing.go` holds Anthropic list rates per model, with
 four buckets: input, cache-creation, cache-read, output. The per-session
 "dominant model" is the model producing the majority of the session's
 output tokens; every episode in that session is costed at that model's
@@ -710,12 +710,17 @@ claude_trace/
 ├── go.mod / go.sum
 ├── cmd/
 │   └── ct/                       CLI subcommands (ingest / serve / mcp / …)
+├── pkg/                          Public packages, no SQLite, no files
+│   ├── parse/                    JSONL records + tolerant reader + Normalize
+│   ├── toolclass/                Tool taxonomy + Bash classifier
+│   ├── episodes/                 Episode segmentation (pure)
+│   ├── analyze/                  Whole-session analysis
+│   ├── digest/                   Size-bounded LLM digest
+│   └── pricing/                  Model rate tables + cost estimation
 ├── internal/
-│   ├── parser/                   JSONL streaming decoder + types
 │   ├── store/                    SQLite schema, migrations, queries, FTS5
-│   ├── ingest/                   Walk + parse + write + Bash classifier
-│   ├── analyzer/                 Episode segmentation
-│   ├── pricing/                  Model rate tables + cost estimation
+│   ├── ingest/                   Walk + parse + write
+│   ├── analyzer/                 Store adapter around pkg/episodes
 │   ├── api/                      REST server
 │   └── mcp/                      JSON-RPC 2.0 over stdio
 ├── frontend/
