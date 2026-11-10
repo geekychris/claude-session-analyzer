@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/geekychris/claude-session-analyzer/internal/store"
+	"github.com/geekychris/claude-session-analyzer/pkg/toolclass"
 )
 
 // BackfillBashClassification populates bash_program / bash_action for every
@@ -23,7 +24,10 @@ func BackfillBashClassification(ctx context.Context, st *store.Store) (int, erro
 	if err != nil {
 		return 0, err
 	}
-	type row struct{ ID int64; Input string }
+	type row struct {
+		ID    int64
+		Input string
+	}
 	var todo []row
 	for rows.Next() {
 		var r row
@@ -42,7 +46,7 @@ func BackfillBashClassification(ctx context.Context, st *store.Store) (int, erro
 			return updated, ctx.Err()
 		default:
 		}
-		prog, act := ClassifyBashInput(json.RawMessage(r.Input))
+		prog, act := toolclass.ClassifyBashInput(json.RawMessage(r.Input))
 		if prog == "" {
 			continue
 		}

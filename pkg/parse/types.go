@@ -1,4 +1,4 @@
-// Package parser decodes Claude Code JSONL session files.
+// Package parse decodes Claude Code JSONL session files.
 //
 // Events in a JSONL file are heterogeneous — user messages, assistant messages
 // (with tool_use / thinking / text content), system events (turn_duration,
@@ -7,13 +7,19 @@
 //
 // We keep decoding permissive: only strongly-typed fields we care about are
 // pulled out; the full raw JSON is preserved for downstream consumers.
-package parser
+//
+// The package needs no files and no database: Records decodes any io.Reader,
+// ParseLine decodes one line, and Normalize flattens a Record into the
+// role/text/tokens/tool shape the analyzers use. FileParser is a convenience
+// for resumable reads of a file on disk.
+package parse
 
 import "encoding/json"
 
-// Event is the union of all event shapes that appear in a session JSONL file.
-// Fields not relevant to a given event type are left zero.
-type Event struct {
+// Record is the union of all event shapes that appear in a session JSONL file
+// (one JSON object per line). Fields not relevant to a given record type are
+// left zero; unknown fields are ignored and kept in Raw.
+type Record struct {
 	// Line offset in the source file (bytes) where this event started.
 	// Populated by the parser, not present in the JSON itself.
 	Offset int64 `json:"-"`
@@ -37,9 +43,9 @@ type Event struct {
 	Message *MessagePayload `json:"message,omitempty"`
 
 	// system subtype (turn_duration, compact_boundary, ...)
-	Subtype  string `json:"subtype,omitempty"`
-	Content  json.RawMessage `json:"content,omitempty"`  // system.content can be string OR list
-	Duration int64  `json:"durationMs,omitempty"`
+	Subtype  string          `json:"subtype,omitempty"`
+	Content  json.RawMessage `json:"content,omitempty"` // system.content can be string OR list
+	Duration int64           `json:"durationMs,omitempty"`
 
 	// Headers
 	Mode           string `json:"mode,omitempty"`
@@ -52,10 +58,13 @@ type Event struct {
 	PRRepository string `json:"prRepository,omitempty"`
 }
 
+// Event is the historical name of Record.
+type Event = Record
+
 // MessagePayload is the `message` object nested inside user/assistant events.
-// - For user events with role=user, `content` is either a string OR an array
-//   of ContentBlock (when it contains tool_result blocks).
-// - For assistant events, `content` is always an array of ContentBlock.
+//   - For user events with role=user, `content` is either a string OR an array
+//     of ContentBlock (when it contains tool_result blocks).
+//   - For assistant events, `content` is always an array of ContentBlock.
 type MessagePayload struct {
 	Role    string          `json:"role"`
 	Model   string          `json:"model,omitempty"`
@@ -90,9 +99,9 @@ type ContentBlock struct {
 	Input json.RawMessage `json:"input,omitempty"`
 
 	// tool_result
-	ToolUseID       string          `json:"tool_use_id,omitempty"`
-	IsError         bool            `json:"is_error,omitempty"`
-	ResultContent   json.RawMessage `json:"content,omitempty"` // string or list; use `Content` collision-free
+	ToolUseID     string          `json:"tool_use_id,omitempty"`
+	IsError       bool            `json:"is_error,omitempty"`
+	ResultContent json.RawMessage `json:"content,omitempty"` // string or list; use `Content` collision-free
 }
 
 // DecodeContentBlocks parses a message content field into blocks.

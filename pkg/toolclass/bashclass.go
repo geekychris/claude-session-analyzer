@@ -1,4 +1,4 @@
-package ingest
+package toolclass
 
 import (
 	"encoding/json"
@@ -10,34 +10,34 @@ import (
 // (e.g. `git commit`, `npm install`, `docker build`). For anything else we
 // only record the program name; the raw command stays in input_json.
 var actionAwarePrograms = map[string]bool{
-	"git":     true,
-	"gh":      true,
-	"npm":     true,
-	"yarn":    true,
-	"pnpm":    true,
-	"docker":  true,
-	"kubectl": true,
-	"cargo":   true,
-	"go":      true,
-	"pip":     true,
-	"pip3":    true,
-	"python":  true,
-	"python3": true,
-	"node":    true,
-	"ruby":    true,
-	"mvn":     true,
-	"gradle":  true,
-	"make":    true,
-	"bundle":  true,
+	"git":       true,
+	"gh":        true,
+	"npm":       true,
+	"yarn":      true,
+	"pnpm":      true,
+	"docker":    true,
+	"kubectl":   true,
+	"cargo":     true,
+	"go":        true,
+	"pip":       true,
+	"pip3":      true,
+	"python":    true,
+	"python3":   true,
+	"node":      true,
+	"ruby":      true,
+	"mvn":       true,
+	"gradle":    true,
+	"make":      true,
+	"bundle":    true,
 	"terraform": true,
-	"aws":     true,
-	"gcloud":  true,
-	"brew":    true,
+	"aws":       true,
+	"gcloud":    true,
+	"brew":      true,
 	"systemctl": true,
-	"psql":    true,
-	"mysql":   true,
-	"sqlite3": true,
-	"jq":      true,
+	"psql":      true,
+	"mysql":     true,
+	"sqlite3":   true,
+	"jq":        true,
 }
 
 // ClassifyBashInput extracts the executed program and its (optional)
@@ -53,6 +53,9 @@ func ClassifyBashInput(input json.RawMessage) (program, action string) {
 	cmd, _ := m["command"].(string)
 	return classifyBashCommand(cmd)
 }
+
+// ClassifyBashCommand is ClassifyBashInput for a bare command string.
+func ClassifyBashCommand(cmd string) (program, action string) { return classifyBashCommand(cmd) }
 
 // shellNoiseWords are shell built-ins/keywords that aren't meaningful
 // "programs" — we skip past them to find the real command.

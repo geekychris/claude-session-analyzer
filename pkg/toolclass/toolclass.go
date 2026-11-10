@@ -1,12 +1,15 @@
-package ingest
+// Package toolclass classifies Claude Code tool calls: modifying (Edit,
+// Write, ...), read, search, bash, sub-agent; extracts the primary file path;
+// and for Bash, the program and action that ran.
+package toolclass
 
 import (
 	"encoding/json"
 	"strings"
 )
 
-// Classifier turns a raw tool_use into the flags we track and pulls out the
-// primary file_path where applicable.
+// ToolFacts is the classification of one tool_use, with the primary
+// file_path where applicable.
 type ToolFacts struct {
 	Name        string
 	FilePath    string
@@ -39,21 +42,21 @@ var searchTools = map[string]bool{
 
 // bashTools shell out.
 var bashTools = map[string]bool{
-	"Bash":    true,
+	"Bash":       true,
 	"BashOutput": true,
 }
 
 // subagentTools invoke another agent — increases context "depth."
 var subagentTools = map[string]bool{
-	"Agent":       true,
-	"Task":        true,
-	"TaskCreate":  true,
-	"TaskUpdate":  true,
-	"TaskGet":     true,
-	"TaskList":    true,
-	"TaskOutput":  true,
-	"TaskStop":    true,
-	"Workflow":    true,
+	"Agent":      true,
+	"Task":       true,
+	"TaskCreate": true,
+	"TaskUpdate": true,
+	"TaskGet":    true,
+	"TaskList":   true,
+	"TaskOutput": true,
+	"TaskStop":   true,
+	"Workflow":   true,
 }
 
 // ClassifyTool applies the tool taxonomy and extracts a file_path if the input
@@ -91,4 +94,35 @@ func ClassifyTool(name string, input json.RawMessage) ToolFacts {
 		}
 	}
 	return tf
+}
+
+// Categories, in the order they are reported. A tool call has exactly one.
+const (
+	CategoryModify   = "modify"
+	CategoryRead     = "read"
+	CategorySearch   = "search"
+	CategoryBash     = "bash"
+	CategorySubagent = "subagent"
+	CategoryOther    = "other"
+)
+
+// Categories lists every category in display order.
+var Categories = []string{CategoryRead, CategorySearch, CategoryModify, CategoryBash, CategorySubagent, CategoryOther}
+
+// Category collapses the flags to one label. Modifying wins over everything
+// (it bounds an episode); then sub-agent, bash, search, read.
+func (tf ToolFacts) Category() string {
+	switch {
+	case tf.IsModifying:
+		return CategoryModify
+	case tf.IsSubagent:
+		return CategorySubagent
+	case tf.IsBash:
+		return CategoryBash
+	case tf.IsSearch:
+		return CategorySearch
+	case tf.IsRead:
+		return CategoryRead
+	}
+	return CategoryOther
 }

@@ -212,7 +212,7 @@ Each episode records three metrics beyond tools-before-edit:
   built a throwaway helper script (custom python, bash one-off, etc.) as
   part of resolving your prompt.
 - **`costUsd`** — estimated USD spend for the episode, using the session's
-  dominant model + `internal/pricing`. Session and project cards sum this.
+  dominant model + `pkg/pricing`. Session and project cards sum this.
 
 Prices are approximate list rates and can be overridden by writing a JSON
 file with the same shape and pointing `CT_PRICING=/path/to/pricing.json`.
@@ -279,10 +279,16 @@ ct rebuild-all
 claude_trace/
 ├── main.go, app.go              Wails bindings + embedded REST
 ├── cmd/ct/                      CLI (ingest / serve / mcp / …)
+├── pkg/                         Public, storage-free packages (see below)
+│   ├── parse/                   JSONL records, tolerant reader, Normalize
+│   ├── toolclass/               Tool + Bash classification, categories
+│   ├── episodes/                Episode segmentation (pure)
+│   ├── analyze/                 Whole-session analysis
+│   ├── digest/                  Size-bounded text digest for an LLM
+│   └── pricing/                 Tokens → estimated USD by model
 ├── internal/
-│   ├── parser/                  Streaming JSONL decoder
 │   ├── store/                   SQLite schema + queries + FTS5
-│   ├── analyzer/                Episode segmentation
+│   ├── analyzer/                Loads rows, calls pkg/episodes, writes back
 │   ├── ingest/                  Walk + parse + write
 │   ├── api/                     REST server
 │   └── mcp/                     MCP server (stdio JSON-RPC)
@@ -290,3 +296,36 @@ claude_trace/
 ```
 
 Default DB: `~/.claude/claude_trace.db`. Override with `CT_DB=/path/db`.
+
+## Using the analysis from Go
+
+The parser, tool classification, episode derivation, session analysis,
+digest and pricing are public packages under `pkg/`. They need no SQLite and
+no files — feed them any `io.Reader` of JSONL:
+
+```go
+import (
+    "github.com/geekychris/claude-session-analyzer/pkg/analyze"
+    "github.com/geekychris/claude-session-analyzer/pkg/digest"
+    "github.com/geekychris/claude-session-analyzer/pkg/parse"
+)
+
+recs, err := parse.Records(r)             // skips malformed lines, keeps unknown types
+a := analyze.Session(recs, analyze.Options{IdleGap: 5 * time.Minute})
+fmt.Println(a.Tokens, a.CostUSD, a.ActiveSeconds, len(a.Episodes))
+text := digest.Build(a, digest.Options{MaxBytes: 16 << 10}) // never exceeds the budget
+```
+
+`analyze.Session` returns messages, tool calls (category read / search /
+modify / bash / subagent / other, file path, Bash program + action, result
+size, error, retry), episodes (the user's ask, tools before the first edit,
+files edited, assistant statements, errors, retries, tokens and cost), files
+touched, tokens and cost by model, sub-agent activity, errors, and timings
+(first/last timestamp, wall time, active time with an idle-gap cutoff).
+
+Two differences from the app's SQLite rollups: `analyze` counts the usage of
+an API response once even when Claude Code splits it over several records
+(the app sums every record), and it costs each model's tokens at that
+model's rate (the app uses the session's dominant model). Sidechain
+(sub-agent) and `isMeta` user records do not start an episode in `analyze`.
+

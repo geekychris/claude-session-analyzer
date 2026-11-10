@@ -8,7 +8,6 @@ package ingest
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -17,8 +16,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/geekychris/claude-session-analyzer/internal/parser"
 	"github.com/geekychris/claude-session-analyzer/internal/store"
+	parser "github.com/geekychris/claude-session-analyzer/pkg/parse"
+	"github.com/geekychris/claude-session-analyzer/pkg/toolclass"
 )
 
 // DefaultRoot returns the default Claude projects directory (~/.claude/projects).
@@ -124,13 +124,13 @@ func (in *Ingester) ingestFile(ctx context.Context, slug, path string, rep *stor
 
 	sessionID := "" // populated from the first event that carries one
 	var (
-		msgSeq, tcSeq int
-		msgAdded      int
-		tcAdded       int
+		msgSeq, tcSeq      int
+		msgAdded           int
+		tcAdded            int
 		lastCompleteOffset = fs.BytesIngested
-		lastTs        string
-		seenCWD       string
-		seenTitle     string
+		lastTs             string
+		seenCWD            string
+		seenTitle          string
 	)
 
 	db := in.Store.DB()
@@ -278,83 +278,13 @@ func (in *Ingester) ingestFile(ctx context.Context, slug, path string, rep *stor
 func (in *Ingester) writeEvent(tx *sql.Tx, ev *parser.Event, sessionID string,
 	msgSeq, tcSeq, msgAdded, tcAdded *int) error {
 
-	role, sub, text, model := "", "", "", ""
-	var inTok, outTok, cacheRead, cacheCreate int64
-	var toolUses []parser.ContentBlock
-	var toolResults []parser.ContentBlock
-
-	switch ev.Type {
-	case "user":
-		role = "user"
-		if ev.Message != nil {
-			blocks, isList, _ := parser.DecodeContentBlocks(ev.Message.Content)
-			if !isList {
-				text = parser.StringContent(ev.Message.Content)
-			} else {
-				var sb strings.Builder
-				sawText, sawResult := false, false
-				for _, b := range blocks {
-					switch b.Type {
-					case "text":
-						sb.WriteString(b.Text)
-						sb.WriteString("\n")
-						sawText = true
-					case "tool_result":
-						toolResults = append(toolResults, b)
-						// Include a fingerprint of the result in text for FTS.
-						sb.WriteString(stringifyResult(b.ResultContent))
-						sb.WriteString("\n")
-						sawResult = true
-					}
-				}
-				text = strings.TrimSpace(sb.String())
-				// If the user message carries only tool_results (no human text),
-				// mark it so the episode analyzer doesn't treat it as a turn start.
-				if sawResult && !sawText {
-					sub = "tool_result"
-				}
-			}
-		}
-	case "assistant":
-		role = "assistant"
-		if ev.Message != nil {
-			model = ev.Message.Model
-			if ev.Message.Usage != nil {
-				inTok = int64(ev.Message.Usage.InputTokens)
-				outTok = int64(ev.Message.Usage.OutputTokens)
-				cacheRead = int64(ev.Message.Usage.CacheReadInputTokens)
-				cacheCreate = int64(ev.Message.Usage.CacheCreationInputTokens)
-			}
-			blocks, isList, _ := parser.DecodeContentBlocks(ev.Message.Content)
-			if isList {
-				var sb strings.Builder
-				for _, b := range blocks {
-					switch b.Type {
-					case "text":
-						sb.WriteString(b.Text)
-						sb.WriteString("\n")
-					case "tool_use":
-						toolUses = append(toolUses, b)
-						sb.WriteString("[tool_use ")
-						sb.WriteString(b.Name)
-						sb.WriteString("]\n")
-					case "thinking":
-						// Deliberately excluded from FTS text.
-					}
-				}
-				text = strings.TrimSpace(sb.String())
-			}
-		}
-	case "system":
-		role = "system"
-		sub = ev.Subtype
-		text = parser.StringContent(ev.Content)
-	default:
-		// Header/meta events: mode, permission-mode, file-history-snapshot, attachment,
-		// ai-title, last-prompt, queue-operation, pr-link — keep them for the timeline.
-		role = "meta"
-		sub = ev.Type
-	}
+	nm := parser.Normalize(*ev)
+	role, sub, text, model := nm.Role, nm.Subtype, nm.Text, nm.Model
+	inTok := int64(nm.Usage.InputTokens)
+	outTok := int64(nm.Usage.OutputTokens)
+	cacheRead := int64(nm.Usage.CacheReadInputTokens)
+	cacheCreate := int64(nm.Usage.CacheCreationInputTokens)
+	toolUses, toolResults := nm.ToolUses, nm.ToolResults
 
 	mid, err := in.Store.InsertMessage(tx, store.MessageInsert{
 		SessionID:           sessionID,
@@ -384,10 +314,10 @@ func (in *Ingester) writeEvent(tx *sql.Tx, ev *parser.Event, sessionID string,
 
 	// tool_use blocks
 	for _, b := range toolUses {
-		tf := ClassifyTool(b.Name, b.Input)
+		tf := toolclass.ClassifyTool(b.Name, b.Input)
 		var bp, ba string
 		if tf.IsBash {
-			bp, ba = ClassifyBashInput(b.Input)
+			bp, ba = toolclass.ClassifyBashInput(b.Input)
 		}
 		if _, err := in.Store.InsertToolCall(tx, store.ToolCallInsert{
 			SessionID:   sessionID,
@@ -454,32 +384,4 @@ func upsertProjectTx(tx *sql.Tx, slug, cwd string) error {
 		  last_seen_at = excluded.last_seen_at
 	`, slug, cwd, name, time.Now().UTC().Format(time.RFC3339Nano))
 	return err
-}
-
-// stringifyResult reduces a tool_result content to a plain string for FTS.
-func stringifyResult(raw json.RawMessage) string {
-	if len(raw) == 0 {
-		return ""
-	}
-	// try string
-	var s string
-	if err := json.Unmarshal(raw, &s); err == nil {
-		return s
-	}
-	// try list of {type: "text", text: "..."}
-	var list []struct {
-		Type string `json:"type"`
-		Text string `json:"text"`
-	}
-	if err := json.Unmarshal(raw, &list); err == nil {
-		var sb strings.Builder
-		for _, it := range list {
-			if it.Type == "text" {
-				sb.WriteString(it.Text)
-				sb.WriteString("\n")
-			}
-		}
-		return strings.TrimSpace(sb.String())
-	}
-	return string(raw)
 }
