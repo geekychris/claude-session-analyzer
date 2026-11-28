@@ -12,35 +12,35 @@ type Project struct {
 	LastSeenAt   string `json:"lastSeenAt"`
 
 	// Aggregates
-	TotalMessages       int   `json:"totalMessages"`
-	TotalToolCalls      int   `json:"totalToolCalls"`
-	TotalEdits          int   `json:"totalEdits"`
-	TotalInputTokens    int64 `json:"totalInputTokens"`
-	TotalOutputTokens   int64 `json:"totalOutputTokens"`
-	TotalCacheReadTokens     int64 `json:"totalCacheReadTokens"`
-	TotalCacheCreationTokens int64 `json:"totalCacheCreationTokens"`
+	TotalMessages            int     `json:"totalMessages"`
+	TotalToolCalls           int     `json:"totalToolCalls"`
+	TotalEdits               int     `json:"totalEdits"`
+	TotalInputTokens         int64   `json:"totalInputTokens"`
+	TotalOutputTokens        int64   `json:"totalOutputTokens"`
+	TotalCacheReadTokens     int64   `json:"totalCacheReadTokens"`
+	TotalCacheCreationTokens int64   `json:"totalCacheCreationTokens"`
 	EstimatedCostUSD         float64 `json:"estimatedCostUsd"`
 }
 
 type Session struct {
-	SessionID    string `json:"sessionId"`
-	ProjectSlug  string `json:"projectSlug"`
-	CWD          string `json:"cwd"`
-	GitBranch    string `json:"gitBranch"`
-	AITitle      string `json:"aiTitle"`
-	StartedAt    string `json:"startedAt"`
-	EndedAt      string `json:"endedAt"`
-	MessageCount    int   `json:"messageCount"`
-	ToolCallCount   int   `json:"toolCallCount"`
-	EditCount       int   `json:"editCount"`
-	EpisodeCount    int   `json:"episodeCount"`
-	TotalInputTokens         int64 `json:"totalInputTokens"`
-	TotalOutputTokens        int64 `json:"totalOutputTokens"`
-	TotalCacheReadTokens     int64 `json:"totalCacheReadTokens"`
-	TotalCacheCreationTokens int64 `json:"totalCacheCreationTokens"`
-	SourcePath string `json:"sourcePath"`
-	SizeBytes  int64  `json:"sizeBytes"`
-	BytesIngested int64 `json:"bytesIngested"`
+	SessionID                string `json:"sessionId"`
+	ProjectSlug              string `json:"projectSlug"`
+	CWD                      string `json:"cwd"`
+	GitBranch                string `json:"gitBranch"`
+	AITitle                  string `json:"aiTitle"`
+	StartedAt                string `json:"startedAt"`
+	EndedAt                  string `json:"endedAt"`
+	MessageCount             int    `json:"messageCount"`
+	ToolCallCount            int    `json:"toolCallCount"`
+	EditCount                int    `json:"editCount"`
+	EpisodeCount             int    `json:"episodeCount"`
+	TotalInputTokens         int64  `json:"totalInputTokens"`
+	TotalOutputTokens        int64  `json:"totalOutputTokens"`
+	TotalCacheReadTokens     int64  `json:"totalCacheReadTokens"`
+	TotalCacheCreationTokens int64  `json:"totalCacheCreationTokens"`
+	SourcePath               string `json:"sourcePath"`
+	SizeBytes                int64  `json:"sizeBytes"`
+	BytesIngested            int64  `json:"bytesIngested"`
 
 	PrimaryModel     string  `json:"primaryModel"`
 	EstimatedCostUSD float64 `json:"estimatedCostUsd"`
@@ -70,10 +70,10 @@ type Episode struct {
 	EditFilePath        string `json:"editFilePath"`
 
 	// Depth / cost derivations
-	BytesReadBeforeEdit    int64  `json:"bytesReadBeforeEdit"`
-	IntermediateArtifactCount int    `json:"intermediateArtifactCount"`
-	IntermediateArtifactsJSON string `json:"intermediateArtifactsJson"`
-	CostUSD                float64 `json:"costUsd"`
+	BytesReadBeforeEdit       int64   `json:"bytesReadBeforeEdit"`
+	IntermediateArtifactCount int     `json:"intermediateArtifactCount"`
+	IntermediateArtifactsJSON string  `json:"intermediateArtifactsJson"`
+	CostUSD                   float64 `json:"costUsd"`
 }
 
 type Message struct {
@@ -128,20 +128,20 @@ type Watermark struct {
 
 // ToolBreakdown counts how often each tool was invoked in a given scope.
 type ToolBreakdown struct {
-	Name           string `json:"name"`
-	Count          int    `json:"count"`
-	ModifyingCount int    `json:"modifyingCount"`
-	ErrorCount     int    `json:"errorCount"`
-	TotalResultBytes int64 `json:"totalResultBytes"`
+	Name             string `json:"name"`
+	Count            int    `json:"count"`
+	ModifyingCount   int    `json:"modifyingCount"`
+	ErrorCount       int    `json:"errorCount"`
+	TotalResultBytes int64  `json:"totalResultBytes"`
 }
 
 // FileTouchStat is one entry in "top files read/edited" reports.
 type FileTouchStat struct {
-	FilePath    string `json:"filePath"`
-	ReadCount   int    `json:"readCount"`
-	EditCount   int    `json:"editCount"`
-	TotalCount  int    `json:"totalCount"`
-	Sessions    int    `json:"sessions"`
+	FilePath   string `json:"filePath"`
+	ReadCount  int    `json:"readCount"`
+	EditCount  int    `json:"editCount"`
+	TotalCount int    `json:"totalCount"`
+	Sessions   int    `json:"sessions"`
 }
 
 // FileBlastRadius extends FileTouchStat with cross-cutting metrics:
@@ -150,24 +150,24 @@ type FileTouchStat struct {
 // A file with a high avgSiblingEdits is one that tends to cascade — editing
 // it forces edits elsewhere too.
 type FileBlastRadius struct {
-	FilePath         string  `json:"filePath"`
-	ReadCount        int     `json:"readCount"`
-	EditCount        int     `json:"editCount"`
-	Sessions         int     `json:"sessions"`
-	Projects         int     `json:"projects"`
-	Episodes         int     `json:"episodes"`
-	AvgSiblingEdits  float64 `json:"avgSiblingEdits"`
-	FirstSeen        string  `json:"firstSeen"`
-	LastSeen         string  `json:"lastSeen"`
+	FilePath        string  `json:"filePath"`
+	ReadCount       int     `json:"readCount"`
+	EditCount       int     `json:"editCount"`
+	Sessions        int     `json:"sessions"`
+	Projects        int     `json:"projects"`
+	Episodes        int     `json:"episodes"`
+	AvgSiblingEdits float64 `json:"avgSiblingEdits"`
+	FirstSeen       string  `json:"firstSeen"`
+	LastSeen        string  `json:"lastSeen"`
 }
 
 // BashBreakdown counts how often each (program, action) pair appears.
 type BashBreakdownRow struct {
-	Program     string `json:"program"`
-	Action      string `json:"action"`
-	Count       int    `json:"count"`
-	ErrorCount  int    `json:"errorCount"`
-	Sessions    int    `json:"sessions"`
+	Program    string `json:"program"`
+	Action     string `json:"action"`
+	Count      int    `json:"count"`
+	ErrorCount int    `json:"errorCount"`
+	Sessions   int    `json:"sessions"`
 }
 
 // BashCommandSample is one specific command execution (for drill-in from a
@@ -194,12 +194,12 @@ type EpisodeBucket struct {
 
 // IngestReport summarises one ingestion pass.
 type IngestReport struct {
-	FilesScanned  int      `json:"filesScanned"`
-	FilesIngested int      `json:"filesIngested"`
-	BytesRead     int64    `json:"bytesRead"`
-	MessagesAdded int      `json:"messagesAdded"`
-	ToolCallsAdded int     `json:"toolCallsAdded"`
-	EpisodesBuilt int      `json:"episodesBuilt"`
-	DurationMs    int64    `json:"durationMs"`
-	Errors        []string `json:"errors"`
+	FilesScanned   int      `json:"filesScanned"`
+	FilesIngested  int      `json:"filesIngested"`
+	BytesRead      int64    `json:"bytesRead"`
+	MessagesAdded  int      `json:"messagesAdded"`
+	ToolCallsAdded int      `json:"toolCallsAdded"`
+	EpisodesBuilt  int      `json:"episodesBuilt"`
+	DurationMs     int64    `json:"durationMs"`
+	Errors         []string `json:"errors"`
 }
