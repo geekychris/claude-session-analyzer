@@ -385,21 +385,21 @@ func (s *Store) InsertMessage(tx *sql.Tx, m MessageInsert) (int64, error) {
 }
 
 type ToolCallInsert struct {
-	SessionID     string
-	MessageID     int64
-	Seq           int
-	ToolUseID     string
-	Name          string
-	InputJSON     string
-	FilePath      string
-	IsModifying   bool
-	IsRead        bool
-	IsBash        bool
-	IsSearch      bool
-	IsSubagent    bool
-	Ts            string
-	BashProgram   string
-	BashAction    string
+	SessionID   string
+	MessageID   int64
+	Seq         int
+	ToolUseID   string
+	Name        string
+	InputJSON   string
+	FilePath    string
+	IsModifying bool
+	IsRead      bool
+	IsBash      bool
+	IsSearch    bool
+	IsSubagent  bool
+	Ts          string
+	BashProgram string
+	BashAction  string
 }
 
 func (s *Store) InsertToolCall(tx *sql.Tx, tc ToolCallInsert) (int64, error) {
@@ -485,8 +485,8 @@ type EpisodeInsert struct {
 	EditFilePath        string
 	ToolCallIDs         []int64
 
-	BytesReadBeforeEdit       int64
-	IntermediateArtifacts     []string
+	BytesReadBeforeEdit   int64
+	IntermediateArtifacts []string
 }
 
 func (s *Store) InsertEpisode(tx *sql.Tx, e EpisodeInsert) (int64, error) {
@@ -995,9 +995,9 @@ func (s *Store) FilesWithBlastRadius(scope Scope, limit int) ([]FileBlastRadius,
 	defer rows.Close()
 
 	type base struct {
-		Path                                      string
-		Reads, Edits, Sessions, Episodes          int
-		FirstSeen, LastSeen                       string
+		Path                             string
+		Reads, Edits, Sessions, Episodes int
+		FirstSeen, LastSeen              string
 	}
 	var bases []base
 	for rows.Next() {

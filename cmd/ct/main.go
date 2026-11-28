@@ -3,12 +3,12 @@
 //
 // Subcommands:
 //
-//   ct ingest                             one-shot ingestion pass
-//   ct projects                           list projects
-//   ct sessions <project-slug>            list sessions in a project
-//   ct episodes <session-id>              list episodes in a session
-//   ct serve   [--addr 127.0.0.1:8787]    run the REST API
-//   ct mcp                                run the MCP server (stdio)
+//	ct ingest                             one-shot ingestion pass
+//	ct projects                           list projects
+//	ct sessions <project-slug>            list sessions in a project
+//	ct episodes <session-id>              list episodes in a session
+//	ct serve   [--addr 127.0.0.1:8787]    run the REST API
+//	ct mcp                                run the MCP server (stdio)
 //
 // The DB defaults to ~/.claude/claude_trace.db and can be overridden via
 // CT_DB=path.

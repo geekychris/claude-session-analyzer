@@ -7,11 +7,12 @@
 // stdio transport.
 //
 // Supported methods:
-//   initialize         -> handshake, returns server info + capabilities
-//   notifications/initialized (notification, no response)
-//   tools/list         -> catalog of tools with JSON Schema input
-//   tools/call         -> dispatch to a tool handler
-//   ping               -> health check
+//
+//	initialize         -> handshake, returns server info + capabilities
+//	notifications/initialized (notification, no response)
+//	tools/list         -> catalog of tools with JSON Schema input
+//	tools/call         -> dispatch to a tool handler
+//	ping               -> health check
 //
 // Any unknown method returns a JSON-RPC "method not found" error.
 package mcp

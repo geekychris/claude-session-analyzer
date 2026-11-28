@@ -6,29 +6,29 @@
 //
 // Routes (all under /api/v1):
 //
-//   GET  /projects
-//   GET  /projects/:slug/sessions
-//   GET  /sessions/:id
-//   GET  /sessions/:id/episodes
-//   GET  /sessions/:id/stats           (bucketed by watermark, if any)
-//   GET  /sessions/:id/messages?limit=&offset=
-//   GET  /sessions/:id/tool-calls
-//   GET  /sessions/:id/watermarks
-//   POST /sessions/:id/watermarks      {messageUuid,label,note}
-//   GET  /episodes/:id
-//   GET  /episodes/:id/tool-calls
-//   POST /episodes/rebuild             {sessionId}
-//   GET  /watermarks/:id               (not implemented — use session listing)
-//   DEL  /watermarks/:id
-//   GET  /search?q=&limit=
-//   GET  /tools/histogram?session=|project=|global=1
-//   GET  /files/top?session=|project=|global=1&limit=
-//   GET  /episodes/histogram?session=|project=|global=1
-//   GET  /messages/:id/raw
-//   POST /ingest
-//   GET  /export/episodes.csv?session=  (session id required)
-//   GET  /export/tool-calls.csv?session=
-//   GET  /healthz
+//	GET  /projects
+//	GET  /projects/:slug/sessions
+//	GET  /sessions/:id
+//	GET  /sessions/:id/episodes
+//	GET  /sessions/:id/stats           (bucketed by watermark, if any)
+//	GET  /sessions/:id/messages?limit=&offset=
+//	GET  /sessions/:id/tool-calls
+//	GET  /sessions/:id/watermarks
+//	POST /sessions/:id/watermarks      {messageUuid,label,note}
+//	GET  /episodes/:id
+//	GET  /episodes/:id/tool-calls
+//	POST /episodes/rebuild             {sessionId}
+//	GET  /watermarks/:id               (not implemented — use session listing)
+//	DEL  /watermarks/:id
+//	GET  /search?q=&limit=
+//	GET  /tools/histogram?session=|project=|global=1
+//	GET  /files/top?session=|project=|global=1&limit=
+//	GET  /episodes/histogram?session=|project=|global=1
+//	GET  /messages/:id/raw
+//	POST /ingest
+//	GET  /export/episodes.csv?session=  (session id required)
+//	GET  /export/tool-calls.csv?session=
+//	GET  /healthz
 package api
 
 import (
